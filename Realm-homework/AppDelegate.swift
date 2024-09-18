@@ -7,17 +7,23 @@
 
 import UIKit
 import CoreData
+import RealmSwift
+
 
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate {
 
 
-
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        // Override point for customization after application launch.
+        // Инициализация или настройка Realm, если требуется
+        do {
+            let realm = try Realm()
+            print("Realm initialized successfully at: \(realm.configuration.fileURL!)")
+        } catch {
+            print("Ошибка инициализации Realm: \(error)")
+        }
         return true
     }
-
     // MARK: UISceneSession Lifecycle
 
     func application(_ application: UIApplication, configurationForConnecting connectingSceneSession: UISceneSession, options: UIScene.ConnectionOptions) -> UISceneConfiguration {
@@ -63,19 +69,33 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
     // MARK: - Core Data Saving support
 
-    func saveContext () {
-        let context = persistentContainer.viewContext
-        if context.hasChanges {
-            do {
-                try context.save()
-            } catch {
-                // Replace this implementation with code to handle the error appropriately.
-                // fatalError() causes the application to generate a crash log and terminate. You should not use this function in a shipping application, although it may be useful during development.
-                let nserror = error as NSError
-                fatalError("Unresolved error \(nserror), \(nserror.userInfo)")
+    func saveQuote(_ quote: ChuckNorrisQuote) {
+        guard let realm = RealmManager.shared.realm() else {
+            print("Ошибка доступа к Realm")
+            return
+        }
+
+        // Проверка на дубликаты по идентификатору цитаты
+        if realm.object(ofType: ChuckNorrisQuote.self, forPrimaryKey: quote.id) == nil {
+            try! realm.write {
+                realm.add(quote)
+                print("Цитата сохранена: \(quote.text)")  // Логирование
+
+                if let categoryName = quote.category, !categoryName.isEmpty {
+                    // Проверка на дубликаты категорий
+                    if realm.object(ofType: QuoteCategory.self, forPrimaryKey: categoryName) == nil {
+                        let category = QuoteCategory()
+                        category.name = categoryName
+                        realm.add(category)
+                        print("Категория сохранена: \(category.name)")  // Логирование
+                    }
+                }
             }
+        } else {
+            print("Цитата уже существует в базе данных")
         }
     }
+
 
 }
 

@@ -9,26 +9,36 @@ class CategoriesViewController: UITableViewController {
         super.viewDidLoad()
         title = "Категории"
         
-        let realm = try! Realm()
-        categories = realm.objects(QuoteCategory.self)  // Извлекаем все категории из базы данных
+        // Получаем экземпляр Realm через RealmManager
+        guard let realm = RealmManager.shared.realm() else {
+            print("Ошибка при открытии Realm")
+            return
+        }
         
-        tableView.reloadData()  // Обновляем таблицу для отображения категорий
+        // Загружаем категории из базы данных
+        categories = realm.objects(QuoteCategory.self)
+        tableView.reloadData()
     }
     
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return categories.count
+        let count = categories?.count ?? 0
+        print("Количество строк в разделе: \(count)")
+        return count
     }
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = UITableViewCell(style: .default, reuseIdentifier: "Cell")
-        let category = categories[indexPath.row]
+        guard let category = categories?[indexPath.row] else {
+            cell.textLabel?.text = "Нет данных"
+            return cell
+        }
         cell.textLabel?.text = category.name
         return cell
     }
     
     // Переход на экран цитат выбранной категории
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        let category = categories[indexPath.row]
+        guard let category = categories?[indexPath.row] else { return }
         let quotesVC = QuotesByCategoryViewController(category: category.name)
         navigationController?.pushViewController(quotesVC, animated: true)
     }

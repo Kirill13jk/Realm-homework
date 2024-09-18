@@ -38,7 +38,7 @@ class RandomQuoteViewController: UIViewController {
         apiService.fetchRandomQuote { [weak self] quote in
             guard let self = self, let quote = quote else { return }
             
-            // Сохраняем цитату в Realm
+            // Сохраняем цитату в зашифрованный Realm
             self.saveQuote(quote)
             
             DispatchQueue.main.async {
@@ -49,24 +49,25 @@ class RandomQuoteViewController: UIViewController {
     
     // Добавляем метод для сохранения цитаты и категории в Realm
     private func saveQuote(_ quote: ChuckNorrisQuote) {
-        let realm = try! Realm()
-        
-        // Проверка на дубликаты по идентификатору цитаты
-        if realm.object(ofType: ChuckNorrisQuote.self, forPrimaryKey: quote.id) == nil {
-            try! realm.write {
-                realm.add(quote)
-                
-                // Сохранение категории, если она указана
-                if let categoryName = quote.category, !categoryName.isEmpty {
-                    // Проверка на дубликаты категорий
-                    if realm.object(ofType: QuoteCategory.self, forPrimaryKey: categoryName) == nil {
-                        let category = QuoteCategory()
-                        category.name = categoryName
-                        realm.add(category)
+        if let realm = RealmManager.shared.realm() {
+            // Проверка на дубликаты по идентификатору цитаты
+            if realm.object(ofType: ChuckNorrisQuote.self, forPrimaryKey: quote.id) == nil {
+                try! realm.write {
+                    realm.add(quote)
+                    
+                    // Сохранение категории, если она указана
+                    if let categoryName = quote.category, !categoryName.isEmpty {
+                        // Проверка на дубликаты категорий
+                        if realm.object(ofType: QuoteCategory.self, forPrimaryKey: categoryName) == nil {
+                            let category = QuoteCategory()
+                            category.name = categoryName
+                            realm.add(category)
+                        }
                     }
                 }
             }
+        } else {
+            print("Не удалось открыть зашифрованную базу данных")
         }
     }
-
 }
